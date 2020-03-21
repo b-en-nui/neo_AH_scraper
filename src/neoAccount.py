@@ -4,7 +4,24 @@ from bs4 import BeautifulSoup
 from collections import deque
 
 
-def initialize_auction_queue(href, price, count):
+# Runs continuously, comparing auction queues to find finished auctions & add to d_final
+def maintain_final_queue(session, headers, d_first, d_final):
+    while 'true':
+        second_visit = visit_auction(session, headers)
+        d_second = create_auction_queue(second_visit[0], second_visit[1], second_visit[2])
+        i = 0
+        while d_first[i][0] != d_second[0][0]:
+            d_final.append(d_first[i])
+            i = i + 1
+        d_first = d_second
+        print('\nclosed auction list:')
+        print(d_final)
+        time.sleep(30)
+
+
+# Accepts the output of visit_auction() and converts to deque data structure
+# Returns: deque[auctionID, price]
+def create_auction_queue(href, price, count):
     d = deque()
     for x in range(0, count):
         auction = [href[x], price[x]]
@@ -12,6 +29,7 @@ def initialize_auction_queue(href, price, count):
     return d
 
 
+# Visits auction front page, parses HTML for data
 def visit_auction(session, headers):
     time.sleep(6)
     res = session.get('http://www.neopets.com/auctions.phtml', headers=headers)
@@ -58,5 +76,3 @@ class NeoAccount:
         res = session.post('http://www.neopets.com/login.phtml', {'username': self.user,
                                                                   'password': self.pw,
                                                                   'destination': ''}, headers=headers)
-        print(res.headers)
-        print(res.content)

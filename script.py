@@ -1,5 +1,6 @@
 import requests
-from src.neoAccount import NeoAccount, visit_auction, initialize_auction_queue
+from src.neoAccount import NeoAccount, maintain_final_queue, create_auction_queue, visit_auction
+from collections import deque
 
 s = requests.Session()
 file = open('login.txt', 'r')
@@ -16,12 +17,15 @@ payload = {
     'username': login_info[0],
     'password': login_info[1]
 }
+d_final = deque()
 
 acc = NeoAccount(payload['username'], payload['password'])
 
 login_attempt = acc.login(s, headers)
 visit_attempt = visit_auction(s, headers)
-deque = initialize_auction_queue(visit_attempt[0], visit_attempt[1], visit_attempt[2])
+d_first = create_auction_queue(visit_attempt[0], visit_attempt[1], visit_attempt[2])
 
-print(deque)
+print('\ninitial auction queue:')
+print(d_first)
 
+maintain_final_queue(s, headers, d_first, d_final)
