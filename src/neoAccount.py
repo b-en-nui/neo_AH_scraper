@@ -2,6 +2,7 @@ import time
 import re
 from bs4 import BeautifulSoup
 from collections import deque
+from datetime import datetime
 
 
 # Runs continuously, comparing auction queues to find finished auctions & add to d_final
@@ -16,7 +17,18 @@ def maintain_final_queue(session, headers, d_first, d_final):
         d_first = d_second
         print('\nclosed auction list:')
         print(d_final)
-        time.sleep(30)
+
+        if len(d_final) > 0:
+            print('hey I better process these ' + str(len(d_final)) + ' auctions')
+            while len(d_final) > 0:
+                finished_auc = d_final.popleft()
+                print('\nProcessing ' + str(finished_auc))
+                process_auction(session, headers, finished_auc)
+
+            time.sleep(5)
+
+        else:
+            time.sleep(30)
 
 
 # Accepts the output of visit_auction() and converts to deque data structure
@@ -41,7 +53,7 @@ def visit_auction(session, headers):
     href = href[1::2]  # removes every other item from array, handles duplicates
 
     price = soup.select("td > b")
-    price = [x for x in price if not '[NF]' in x]   # removes NF tags
+    price = [x for x in price if not '[NF]' in x]  # removes NF tags
     price = price[13:len(price) - 1]  # trims extraneous items from array
     price = price[2::3]
 
@@ -56,6 +68,45 @@ def visit_auction(session, headers):
             price[x] = price_search.group(1)
 
     return [href, price, count]
+
+
+def process_auction(session, headers, finished_auc):
+    time.sleep(4)
+    auc_url = 'http://www.neopets.com/auctions.phtml?type=bids&auction_id=' + finished_auc[0]
+    res = session.get(auc_url, headers=headers)
+    body = res.content
+    soup = BeautifulSoup(body, 'html.parser')
+
+    # parse soup for
+    # img url, final price, time now, buyer, seller, success, NF
+    s_img_url = re.search('Closed<p><img border="1" height="80" src="http://images.neopets.com/items/(.+?).gif', str(soup))
+    img_url = s_img_url.group(1)
+    print('Img url is ' + img_url)
+
+    s_price = re.search('placed was for <b>(.+?) NP</b>', str(soup))
+    if s_price is None:
+        final_price = finished_auc[1]
+    else:
+        final_price = s_price.group(1)
+    print('Final price is ' + final_price)
+
+    s_buyer = re.search('<a href="randomfriend\.phtml\?user=(.+?)">', str(soup))
+    if s_buyer is None:
+        buyer = 'None'
+        success = False
+    else:
+        buyer = s_buyer.group(1)
+        success = True
+    print('Buyer is ' + buyer)
+
+    s_seller = re.search('\(owned by (.+?)\)</b>', str(soup))
+    seller = s_seller.group(1)
+    print('Seller is ' + seller)
+
+    aucttime = datetime.now()
+    print(aucttime)
+
+    # return [img_url, final_price, time, buyer, seller, success, neofriend]
 
 
 class NeoAccount:
