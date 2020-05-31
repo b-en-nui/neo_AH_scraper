@@ -23,7 +23,8 @@ def maintain_final_queue(session, headers, d_first, d_final):
             while len(d_final) > 0:
                 finished_auc = d_final.popleft()
                 print('\nProcessing ' + str(finished_auc))
-                process_auction(session, headers, finished_auc)
+                processed_auction = process_auction(session, headers, finished_auc)
+                print(processed_auction)
 
             time.sleep(5)
 
@@ -79,16 +80,18 @@ def process_auction(session, headers, finished_auc):
 
     # parse soup for
     # img url, final price, time now, buyer, seller, success, NF
+    #
+    s_item_name = re.search('<br/><br/><b>(.+?) \(owned by', str(soup))
+    item_name = s_item_name.group(1)
+
     s_img_url = re.search('Closed<p><img border="1" height="80" src="http://images.neopets.com/items/(.+?).gif', str(soup))
     img_url = s_img_url.group(1)
-    print('Img url is ' + img_url)
 
     s_price = re.search('placed was for <b>(.+?) NP</b>', str(soup))
     if s_price is None:
         final_price = finished_auc[1]
     else:
         final_price = s_price.group(1)
-    print('Final price is ' + final_price)
 
     s_buyer = re.search('<a href="randomfriend\.phtml\?user=(.+?)">', str(soup))
     if s_buyer is None:
@@ -97,16 +100,13 @@ def process_auction(session, headers, finished_auc):
     else:
         buyer = s_buyer.group(1)
         success = True
-    print('Buyer is ' + buyer)
 
     s_seller = re.search('\(owned by (.+?)\)</b>', str(soup))
     seller = s_seller.group(1)
-    print('Seller is ' + seller)
 
-    aucttime = datetime.now()
-    print(aucttime)
+    auction_time = str(datetime.now())
 
-    # return [img_url, final_price, time, buyer, seller, success, neofriend]
+    return [item_name, auction_time, img_url, final_price, buyer, seller, success]
 
 
 class NeoAccount:
